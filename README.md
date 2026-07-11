@@ -1,7 +1,8 @@
 # GTOS Dataverse Automation
 
-Automatically provisions the six GTOS tables (and their columns) into a Microsoft
-Dataverse environment from a single `schema.json`, via the Dataverse Web API.
+Automatically provisions the six GTOS tables (their columns **and** their
+relationships) into a Microsoft Dataverse environment from a single
+`schema.json`, via the Dataverse Web API.
 
 Tables created (prefix `gtos_` by default):
 
@@ -14,11 +15,21 @@ Tables created (prefix `gtos_` by default):
 | `gtos_audit` | Append-only audit trail | 06_GOVERNANCE_PHYSICS |
 | `gtos_finding` | Findings/Severity/Owner/Retest/Acceptance | 07_VERIFICATION_MESH |
 
+Relationships created (One-to-Many lookups, from the `relationships` block in `schema.json`):
+
+| Relationship (SchemaName) | Child (referencing) → Parent (referenced) | Lookup column |
+|---------------------------|--------------------------------------------|---------------|
+| `gtos_transformation_inputstate` | Transformation → State | Input State |
+| `gtos_transformation_outputstate` | Transformation → State | Output State |
+| `gtos_finding_transformation` | Finding → Transformation | Transformation |
+| `gtos_audit_governance` | Audit → Governance | Governance |
+| `gtos_knowledge_state` | Knowledge → State | Related State |
+
 ## Files
 
 ```text
 GTOS-DATAVERSE-AUTOMATION/
-├── schema.json                    ← single source of truth (edit tables/columns here)
+├── schema.json                    ← single source of truth (edit tables/columns/relationships here)
 ├── provision_gtos_dataverse.py    ← the automation (Web API, idempotent, dry-run)
 ├── provision_with_pac.ps1         ← optional pac-CLI wrapper (Windows/WSL2)
 ├── requirements.txt               ← pip deps (requests, msal)
@@ -80,14 +91,18 @@ python provision_gtos_dataverse.py --whatif
 python provision_gtos_dataverse.py
 ```
 
-The script is **idempotent**: re-running it skips tables/columns that already
-exist, so it is safe to run again after editing `schema.json`.
+The script is **idempotent**: re-running it skips tables/columns/relationships
+that already exist, so it is safe to run again after editing `schema.json`.
 
 ## What the script does (evidence trail)
 
 For each table it prints one of `[create]` / `[skip]` per table and per column,
-then a summary (`Tables created: N, columns created: M`). This is your evidence
-bundle for the provisioning transformation (see GTOS governance).
+then per relationship, then a summary
+(`Tables created: N, columns created: M, relationships created: R`). This is your
+evidence bundle for the provisioning transformation (see GTOS governance).
+
+Relationships are created **after** all tables and columns exist, so both the
+referenced and referencing tables are guaranteed to be present.
 
 ## Customizing
 
@@ -96,6 +111,10 @@ bundle for the provisioning transformation (see GTOS governance).
 - **Add a column**: add an object under a table's `columns` with a `type` of
   `string`, `memo`, `choice`, `boolean`, or `datetime`.
 - **Add a table**: copy an existing table block in `schema.json`.
+- **Add a relationship**: add an object under the top-level `relationships` array
+  with `schemaName`, `referenced`, `referencing`, `lookupSchemaName`,
+  `lookupDisplayName`, and (optional) `lookupDescription`. A One-to-Many lookup
+  is created on the referencing (child) table pointing at the referenced (parent).
 
 ## Security notes (GTOS-aligned)
 
@@ -104,11 +123,3 @@ bundle for the provisioning transformation (see GTOS governance).
 - **Dry run first**: always run `--whatif` before a live run.
 - **Not the core**: these tables are a durable *adapter* for GTOS state and
   governance — the deterministic core must not depend solely on Dataverse.
-
-## Relationships (next step, optional)
-
-This first version creates tables + typed columns. Lookups/relationships (e.g.
-`transformation.inputState → state`) are intentionally left as a follow-up so
-the base provisioning stays simple and reliable. Ask to extend `schema.json`
-with a `relationships` section and the script will create them via
-`RelationshipDefinitions`.
