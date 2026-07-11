@@ -92,7 +92,8 @@
         { "schemaName": "Fix", "displayName": "Fix", "type": "memo" },
         { "schemaName": "RetestResult", "displayName": "Retest Result", "type": "choice",
           "options": ["Pending", "Pass", "Fail"] },
-        { "schemaName": "Accepted", "displayName": "Accepted", "type": "boolean" }
+        { "schemaName": "Accepted", "displayName": "Accepted", "type": "boolean" },
+        { "schemaName": "DetectedOn", "displayName": "Detected On", "type": "datetime" }
       ]
     }
   ],
