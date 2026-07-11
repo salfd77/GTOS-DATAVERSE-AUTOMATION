@@ -1,6 +1,6 @@
 ---
 name: gtos-orchestration
-version: 1.0.0
+version: 1.1.0
 description: >
   Multi-task, multi-orchestrator, multi-agent operating model for GTOS work.
   Defines the roles (Planning Manager, Critics, Engineers, Execution Manager,
@@ -14,6 +14,7 @@ triggers:
   - multi task gtos
   - plan critics execute
   - run the pipeline
+  - log chain of thoughts
 ---
 
 # GTOS Multi-Agent Orchestration
@@ -114,3 +115,56 @@ These are the deliverable's evidence bundle; keep them with the work.
 - [ ] Cross-task/cross-context consistency reconciled.
 - [ ] `03_exec_log.md` carries the executive sign-off.
 - [ ] Only signed-off work was presented to the user.
+
+## 10. Chain-of-Thought logging (transparency + governed evidence)
+When this pipeline runs as a **Copilot Studio agent**, make the orchestrator's
+intermediate reasoning visible and auditable using the PowerCAT Copilot Studio Kit
+**"Log Chain of Thoughts"** component.
+
+### 10.1 What the component does
+It is a topic with one required string input `CoT` that emits the reasoning back to
+the conversation as an italicized message:
+```
+Activity:  _Thinking: {Topic.CoT}_
+```
+So after every tool, topic, or step, the agent narrates *why* it did it. This is the
+conversational equivalent of the `03_exec_log.md` evidence trail — but live.
+
+### 10.2 Install (one-time, in Copilot Studio)
+1. Import the managed solution `CopilotStudioKit_LogCoT_Component` (publisher PowerCAT,
+   prefix `cat`) into the environment, **or** add it from Agent Library → Component
+   collection → *Log Chain of Thoughts* → **Import**.
+2. Add this instruction to the agent:
+   > "After every tool, topic, or step you take (except when you are already calling
+   > /Log Chain of Thoughts or other debug/logging topics), log your intermediate
+   > reasoning by calling /Log Chain of Thoughts."
+
+### 10.3 GTOS wiring — gate it, don't leak it
+CoT is powerful but must respect the same guardrails:
+- **Governance/PII:** never emit secrets, tokens, or raw personal data in `CoT`.
+  Log the *decision and rationale*, not credentials or full record payloads.
+- **Gate visibility by audience:** enable CoT for builders/critics; for end users,
+  keep it on only when transparency is explicitly wanted (it is verbose).
+- **Map CoT to the gates (§3):** at gate 1/2/3 the CoT message should state which
+  gate was evaluated and its outcome (e.g. `_Thinking: gate 2 — 0 open critic items,
+  proceeding to executive review_`). This makes gate decisions self-documenting.
+
+### 10.4 Persist CoT as GTOS audit evidence (optional)
+To turn transient CoT into durable evidence aligned with `gtos_audit`, after a
+significant step also write an audit row:
+- `gtos_name` — short step label (e.g. "Gate 2 passed: relationships verified").
+- `gtos_actor` — the agent/orchestrator identity (UPN).
+- `gtos_action` — the CoT rationale (trimmed, no secrets).
+- `gtos_occurredon` — timestamp.
+- `gtos_evidencelink` — link to the plan/PR/exec-log artifact.
+- Bind `gtos_audit_governance` to the governing `gtos_governance` record.
+
+This makes the reasoning queryable in the reporting layer (the Audit trail page in
+`docs/reporting/`), so "why did the agent do X?" is answerable months later.
+
+### 10.5 Verification checklist (CoT)
+- [ ] Component imported; agent instruction added.
+- [ ] CoT messages appear per step and name the gate at each gate.
+- [ ] No secrets/PII ever appear in a CoT message.
+- [ ] (If persisted) audit rows created for significant steps and visible in the
+      Audit trail report.
