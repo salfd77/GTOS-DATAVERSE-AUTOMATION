@@ -8,16 +8,17 @@ to the operational Dataverse tables.
 | File | Purpose |
 |------|---------|
 | `build-steps.md` | End-to-end, click-by-click build (Link to Fabric -> model -> RLS -> reports) |
+| `powerbi-desktop-from-csv.md` | Build the same dashboards in Power BI Desktop from exported CSVs (no Fabric needed) |
 | `measures.dax` | Copy/paste DAX measures for the findings/audit/state/transformation dashboards |
 | `rls-roles.md` | Row-Level Security role definitions tied to GTOS governance ownership |
 | `demo-data.md` | How to seed sample data so the dashboards render (uses `seed_gtos_demo.py`) |
 
-## The path in one line
-`Dataverse (org331e3f60) -> Link to Microsoft Fabric (zero-ETL) -> Power BI star-schema semantic model + RLS -> dashboards.`
+## Two paths to the same dashboards
+- **With Fabric** (`build-steps.md`): Dataverse -> Link to Microsoft Fabric (zero-ETL) -> Power BI semantic model + RLS -> dashboards.
+- **Without Fabric** (`powerbi-desktop-from-csv.md`): `verify_gtos_data.py` -> CSVs -> Power BI Desktop -> same model, measures, RLS.
 
 ## Prerequisites
 - The six `gtos_*` tables + 5 relationships exist (they do — provisioned & verified).
-- For the findings timeline, the `gtos_DetectedOn` column exists (added in this PR's
-  `schema.json`; run `provision_gtos_dataverse.py --interactive` once to apply it).
-- (Optional but recommended) Seed demo data so visuals aren't empty — see `demo-data.md`.
-- A Microsoft Fabric capacity/trial and Power BI access on the same tenant.
+- The `gtos_DetectedOn` column exists on Finding (run `provision_gtos_dataverse.py --interactive` once).
+- (Recommended) Seed demo data so visuals aren't empty — see `demo-data.md`.
+- For the Fabric path: a Microsoft Fabric capacity/trial + Power BI on the same tenant.
