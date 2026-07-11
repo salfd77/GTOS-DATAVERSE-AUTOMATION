@@ -1,0 +1,99 @@
+{
+  "publisherPrefix": "gtos",
+  "languageCode": 1033,
+  "solutionUniqueName": "",
+  "tables": [
+    {
+      "schemaName": "State",
+      "displayName": "GTOS State",
+      "displayCollectionName": "GTOS States",
+      "description": "A durable, evidenced snapshot in the State Graph (04_STATE_PHYSICS).",
+      "primaryName": { "schemaName": "Name", "displayName": "State Name", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "LifecycleStage", "displayName": "Lifecycle Stage", "type": "choice",
+          "options": ["Idea", "Requirements", "Architecture", "Build", "Verify", "Deliver", "Learn"] },
+        { "schemaName": "Status", "displayName": "Status", "type": "choice",
+          "options": ["Active", "Superseded", "RolledBack"] },
+        { "schemaName": "EntryConditions", "displayName": "Entry Conditions", "type": "memo" },
+        { "schemaName": "ExitConditions", "displayName": "Exit Conditions", "type": "memo" },
+        { "schemaName": "EvidenceBundle", "displayName": "Evidence Bundle", "type": "memo" }
+      ]
+    },
+    {
+      "schemaName": "Knowledge",
+      "displayName": "GTOS Knowledge",
+      "displayCollectionName": "GTOS Knowledge",
+      "description": "A single typed knowledge entity (02_KNOWLEDGE_PHYSICS).",
+      "primaryName": { "schemaName": "Name", "displayName": "Title", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "KnowledgeType", "displayName": "Knowledge Type", "type": "choice",
+          "options": ["Fact", "Assumption", "Hypothesis", "Decision", "Lesson"] },
+        { "schemaName": "Statement", "displayName": "Statement", "type": "memo" },
+        { "schemaName": "Evidence", "displayName": "Evidence", "type": "memo" },
+        { "schemaName": "Owner", "displayName": "Owner", "type": "string", "maxLength": 200 },
+        { "schemaName": "Verified", "displayName": "Verified", "type": "boolean" }
+      ]
+    },
+    {
+      "schemaName": "Transformation",
+      "displayName": "GTOS Transformation",
+      "displayCollectionName": "GTOS Transformations",
+      "description": "Input State -> Transformation -> Output State (03_TRANSFORMATION_PHYSICS).",
+      "primaryName": { "schemaName": "Name", "displayName": "Transformation Name", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "Goal", "displayName": "Goal", "type": "memo" },
+        { "schemaName": "Provider", "displayName": "Provider", "type": "string", "maxLength": 200 },
+        { "schemaName": "Preconditions", "displayName": "Preconditions", "type": "memo" },
+        { "schemaName": "Postconditions", "displayName": "Postconditions", "type": "memo" },
+        { "schemaName": "EvidenceRequirements", "displayName": "Evidence Requirements", "type": "memo" },
+        { "schemaName": "Status", "displayName": "Status", "type": "choice",
+          "options": ["Designed", "Running", "Verified", "Rejected"] }
+      ]
+    },
+    {
+      "schemaName": "Governance",
+      "displayName": "GTOS Governance",
+      "displayCollectionName": "GTOS Governance Records",
+      "description": "Authority, Ownership, Evidence, Approval (06_GOVERNANCE_PHYSICS).",
+      "primaryName": { "schemaName": "Name", "displayName": "Record Name", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "AuthorityScope", "displayName": "Authority Scope", "type": "string", "maxLength": 400 },
+        { "schemaName": "Ownership", "displayName": "Ownership", "type": "string", "maxLength": 200 },
+        { "schemaName": "ApprovalStatus", "displayName": "Approval Status", "type": "choice",
+          "options": ["Pending", "Approved", "Rejected"] },
+        { "schemaName": "ApprovedBy", "displayName": "Approved By", "type": "string", "maxLength": 200 },
+        { "schemaName": "Evidence", "displayName": "Evidence", "type": "memo" }
+      ]
+    },
+    {
+      "schemaName": "Audit",
+      "displayName": "GTOS Audit",
+      "displayCollectionName": "GTOS Audit Trail",
+      "description": "Append-only trail of authority use, decisions, and approvals (06_GOVERNANCE_PHYSICS).",
+      "primaryName": { "schemaName": "Name", "displayName": "Audit Entry", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "Actor", "displayName": "Actor", "type": "string", "maxLength": 200 },
+        { "schemaName": "Action", "displayName": "Action", "type": "memo" },
+        { "schemaName": "OccurredOn", "displayName": "Occurred On", "type": "datetime" },
+        { "schemaName": "EvidenceLink", "displayName": "Evidence Link", "type": "string", "maxLength": 400 }
+      ]
+    },
+    {
+      "schemaName": "Finding",
+      "displayName": "GTOS Finding",
+      "displayCollectionName": "GTOS Findings",
+      "description": "Verification Mesh finding: severity, owner, fix, retest, acceptance (07_VERIFICATION_MESH).",
+      "primaryName": { "schemaName": "Name", "displayName": "Finding Title", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "Description", "displayName": "Description", "type": "memo" },
+        { "schemaName": "Severity", "displayName": "Severity", "type": "choice",
+          "options": ["Blocker", "Major", "Minor"] },
+        { "schemaName": "Owner", "displayName": "Owner", "type": "string", "maxLength": 200 },
+        { "schemaName": "Fix", "displayName": "Fix", "type": "memo" },
+        { "schemaName": "RetestResult", "displayName": "Retest Result", "type": "choice",
+          "options": ["Pending", "Pass", "Fail"] },
+        { "schemaName": "Accepted", "displayName": "Accepted", "type": "boolean" }
+      ]
+    }
+  ]
+}
