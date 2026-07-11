@@ -1,0 +1,61 @@
+name: Provision GTOS Dataverse
+
+# Lifts the "run locally only" constraint: this runs the provisioning script
+# inside GitHub-hosted CI using an app-only service principal. Secrets never
+# leave GitHub's encrypted store, and no one has to share credentials.
+#
+# One-time setup (see README "Run in CI (app-only)"):
+#   1. Register an Entra app + client secret.
+#   2. Add it to Dataverse as an Application user with the System Customizer role.
+#   3. Add these 4 repository secrets:
+#        DATAVERSE_URL, TENANT_ID, CLIENT_ID, CLIENT_SECRET
+
+on:
+  workflow_dispatch:
+    inputs:
+      whatif:
+        description: "Dry run (preview only, no writes). Set to false to apply."
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provision-gtos-dataverse
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: dataverse
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Provision (dry run)
+        if: ${{ inputs.whatif }}
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        run: python provision_gtos_dataverse.py --whatif
+
+      - name: Provision (apply)
+        if: ${{ !inputs.whatif }}
+        env:
+          DATAVERSE_URL: ${{ secrets.DATAVERSE_URL }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        run: python provision_gtos_dataverse.py

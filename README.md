@@ -34,6 +34,7 @@ GTOS-DATAVERSE-AUTOMATION/
 ├── provision_with_pac.ps1         ← optional pac-CLI wrapper (Windows/WSL2)
 ├── requirements.txt               ← pip deps (requests, msal)
 ├── .env.example                   ← copy to .env and fill credentials
+├── .github/workflows/provision.yml← run provisioning in CI (app-only)
 └── README.md                      ← this file
 ```
 
@@ -94,6 +95,34 @@ python provision_gtos_dataverse.py
 The script is **idempotent**: re-running it skips tables/columns/relationships
 that already exist, so it is safe to run again after editing `schema.json`.
 
+## Run in CI (GitHub Actions, app-only) — no local run needed
+
+You do not have to run the script on your own machine. The workflow at
+`.github/workflows/provision.yml` runs it inside GitHub-hosted CI using the
+app-only (client-credentials) path, so credentials stay in GitHub's encrypted
+secret store and are never shared with anyone.
+
+**One-time setup:**
+
+1. Complete the **app-only prerequisites** above (Entra app registration + client
+   secret + add it to Dataverse as an Application user with **System Customizer**).
+2. In the repo: **Settings → Secrets and variables → Actions → New repository
+   secret**, add all four:
+   - `DATAVERSE_URL` (e.g. `https://org331e3f60.crm.dynamics.com`)
+   - `TENANT_ID`
+   - `CLIENT_ID`
+   - `CLIENT_SECRET`
+
+   Optionally protect them behind an **Environment** named `dataverse` (with
+   required reviewers) to match the workflow's `environment: dataverse` gate.
+
+**Run it:**
+
+1. **Actions** tab → **Provision GTOS Dataverse** → **Run workflow**.
+2. Leave **Dry run** = `true` first to preview (`--whatif`); review the log.
+3. Re-run with **Dry run** = `false` to apply. The script is idempotent, so an
+   apply after everything already exists reports `created: 0`.
+
 ## What the script does (evidence trail)
 
 For each table it prints one of `[create]` / `[skip]` per table and per column,
@@ -115,6 +144,23 @@ referenced and referencing tables are guaranteed to be present.
   with `schemaName`, `referenced`, `referencing`, `lookupSchemaName`,
   `lookupDisplayName`, and (optional) `lookupDescription`. A One-to-Many lookup
   is created on the referencing (child) table pointing at the referenced (parent).
+
+## Reporting & analytics (Fabric + Power BI)
+
+Once the tables exist, build the read/analytics layer with the
+`skills/gtos-reporting-fabric-powerbi` skill: link Dataverse to Microsoft Fabric
+(zero-ETL) → Power BI star-schema semantic model + row-level security →
+governance/audit/findings dashboards. The operational tables stay the source of
+truth; the reporting layer is read-only.
+
+## Skills
+
+```text
+skills/
+├── gtos-dataverse-provisioning/     ← safe operating guide for this repo
+├── gtos-reporting-fabric-powerbi/   ← Fabric + Power BI reporting layer
+└── gtos-orchestration/              ← multi-task/multi-agent pipeline (plan→critics→execute→approve)
+```
 
 ## Security notes (GTOS-aligned)
 
