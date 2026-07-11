@@ -95,5 +95,27 @@
         { "schemaName": "Accepted", "displayName": "Accepted", "type": "boolean" }
       ]
     }
+  ],
+  "relationships": [
+    { "schemaName": "gtos_transformation_inputstate",
+      "referenced": "State", "referencing": "Transformation",
+      "lookupSchemaName": "InputState", "lookupDisplayName": "Input State",
+      "lookupDescription": "The State this Transformation consumes as input." },
+    { "schemaName": "gtos_transformation_outputstate",
+      "referenced": "State", "referencing": "Transformation",
+      "lookupSchemaName": "OutputState", "lookupDisplayName": "Output State",
+      "lookupDescription": "The State this Transformation produces as output." },
+    { "schemaName": "gtos_finding_transformation",
+      "referenced": "Transformation", "referencing": "Finding",
+      "lookupSchemaName": "Transformation", "lookupDisplayName": "Transformation",
+      "lookupDescription": "The Transformation this Finding was raised against." },
+    { "schemaName": "gtos_audit_governance",
+      "referenced": "Governance", "referencing": "Audit",
+      "lookupSchemaName": "Governance", "lookupDisplayName": "Governance",
+      "lookupDescription": "The Governance record this Audit entry evidences." },
+    { "schemaName": "gtos_knowledge_state",
+      "referenced": "State", "referencing": "Knowledge",
+      "lookupSchemaName": "RelatedState", "lookupDisplayName": "Related State",
+      "lookupDescription": "The State this Knowledge entity is associated with." }
   ]
 }
