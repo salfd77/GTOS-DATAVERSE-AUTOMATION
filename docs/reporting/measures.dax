@@ -1,0 +1,71 @@
+// GTOS Power BI measures — copy each block into a new measure.
+// Column names assume the mirrored Dataverse logical names (lowercase, gtos_ prefix).
+// Adjust the table/column names if your model renamed them on import.
+
+// ---------- Findings ----------
+
+Open Findings =
+CALCULATE (
+    COUNTROWS ( gtos_finding ),
+    gtos_finding[gtos_accepted] = FALSE ()
+)
+
+Blocker Findings Open =
+CALCULATE (
+    [Open Findings],
+    gtos_finding[gtos_severity] = "Blocker"
+)
+
+Findings Failing Retest =
+CALCULATE (
+    COUNTROWS ( gtos_finding ),
+    gtos_finding[gtos_retestresult] = "Fail"
+)
+
+Acceptance Rate =
+DIVIDE (
+    CALCULATE ( COUNTROWS ( gtos_finding ), gtos_finding[gtos_accepted] = TRUE () ),
+    COUNTROWS ( gtos_finding )
+)
+
+Findings Detected (period) =
+CALCULATE (
+    COUNTROWS ( gtos_finding ),
+    USERELATIONSHIP ( gtos_finding[gtos_detectedon], 'Date'[Date] )
+)
+
+// ---------- Audit ----------
+
+Audit Events =
+COUNTROWS ( gtos_audit )
+
+Audit Events (period) =
+CALCULATE (
+    [Audit Events],
+    USERELATIONSHIP ( gtos_audit[gtos_occurredon], 'Date'[Date] )
+)
+
+Last Audit =
+MAX ( gtos_audit[gtos_occurredon] )
+
+// ---------- Transformation ----------
+
+Transformations Verified =
+CALCULATE (
+    COUNTROWS ( gtos_transformation ),
+    gtos_transformation[gtos_status] = "Verified"
+)
+
+Transformation Verify Rate =
+DIVIDE (
+    [Transformations Verified],
+    COUNTROWS ( gtos_transformation )
+)
+
+// ---------- State ----------
+
+Active States =
+CALCULATE (
+    COUNTROWS ( gtos_state ),
+    gtos_state[gtos_status] = "Active"
+)
