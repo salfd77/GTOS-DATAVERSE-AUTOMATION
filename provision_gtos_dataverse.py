@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 provision_gtos_dataverse.py
-Automatically creates the GTOS tables + columns in a Microsoft Dataverse
-environment from schema.json, via the Dataverse Web API.
+Automatically creates the GTOS tables + columns (+ relationships) in a Microsoft
+Dataverse environment from schema.json, via the Dataverse Web API.
 
 Design goals (aligned with GTOS governance):
-- Deterministic, idempotent (safe to re-run: existing tables are skipped).
+- Deterministic, idempotent (safe to re-run: existing tables/columns/relationships are skipped).
 - Least privilege: uses a dedicated app registration; you grant only what it needs.
 - Evidence: prints every action; supports --whatif (dry run) to preview with no writes.
 
@@ -13,7 +13,7 @@ Auth: OAuth2 client credentials (MSAL) -> Dataverse Web API.
 
 Usage:
   python provision_gtos_dataverse.py --whatif        # preview only, no changes
-  python provision_gtos_dataverse.py                 # create tables/columns
+  python provision_gtos_dataverse.py                 # create tables/columns/relationships
   python provision_gtos_dataverse.py --schema schema.json
 
 Required environment variables (or a .env file next to this script):
@@ -216,6 +216,43 @@ def build_entity(table, prefix, lang):
     }
 
 
+def build_relationship(rel, prefix, lang):
+    """Build a One-to-Many (lookup) relationship metadata payload.
+
+    schema.json relationship shape:
+      { "schemaName": "gtos_transformation_inputstate",
+        "referenced": "State",          # the "one" side (parent) table schemaName (no prefix)
+        "referencing": "Transformation",# the "many" side (child) table schemaName (no prefix)
+        "lookupSchemaName": "InputState",       # lookup column schemaName (no prefix)
+        "lookupDisplayName": "Input State",
+        "lookupDescription": "..." }
+    """
+    referenced = f"{prefix}_{rel['referenced']}".lower()
+    referencing = f"{prefix}_{rel['referencing']}".lower()
+    lookup_schema = f"{prefix}_{rel['lookupSchemaName']}"
+    return {
+        "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+        "SchemaName": rel["schemaName"],
+        "ReferencedEntity": referenced,
+        "ReferencingEntity": referencing,
+        "CascadeConfiguration": {
+            "Assign": "NoCascade",
+            "Delete": "RemoveLink",
+            "Merge": "NoCascade",
+            "Reparent": "NoCascade",
+            "Share": "NoCascade",
+            "Unshare": "NoCascade",
+        },
+        "Lookup": {
+            "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+            "SchemaName": lookup_schema,
+            "DisplayName": label(rel.get("lookupDisplayName", rel["lookupSchemaName"]), lang),
+            "Description": label(rel.get("lookupDescription", ""), lang),
+            "RequiredLevel": {"Value": "None"},
+        },
+    }
+
+
 # ------------------------------- API client --------------------------------
 
 class Dataverse:
@@ -243,6 +280,18 @@ class Dataverse:
                f"/Attributes(LogicalName='{attr_logical}')?$select=LogicalName")
         r = self.s.get(url)
         return r.status_code == 200
+
+    def relationship_exists(self, schema_name):
+        """True if a relationship with this SchemaName already exists (any type)."""
+        url = (f"{self.api}/RelationshipDefinitions"
+               f"?$select=SchemaName&$filter=SchemaName eq '{schema_name}'")
+        r = self.s.get(url)
+        if r.status_code != 200:
+            return False
+        try:
+            return bool(r.json().get("value"))
+        except ValueError:
+            return False
 
     def _post_with_retry(self, url, payload, what):
         """POST that retries on customization-lock / throttling (429, 0x80071151)."""
@@ -274,6 +323,12 @@ class Dataverse:
             return "whatif"
         url = f"{self.api}/EntityDefinitions(LogicalName='{logical_name}')/Attributes"
         self._post_with_retry(url, payload, "Create attribute")
+        return "created"
+
+    def create_relationship(self, payload):
+        if self.whatif:
+            return "whatif"
+        self._post_with_retry(f"{self.api}/RelationshipDefinitions", payload, "Create relationship")
         return "created"
 
 
@@ -367,7 +422,25 @@ def main():
             if not args.whatif:
                 time.sleep(1)
 
-    print(f"\nDone. Tables created: {created_tables}, columns created: {created_cols}.")
+    # ---- relationships (lookups) -----------------------------------------
+    # Created after all tables/columns so both endpoints are guaranteed to exist.
+    created_rels = 0
+    for rel in schema.get("relationships", []):
+        rel_schema = rel["schemaName"]
+        exists_rel = (not args.whatif) and dv.relationship_exists(rel_schema)
+        if exists_rel:
+            print(f"[skip] relationship {rel_schema} already exists")
+            continue
+        print(f"[create] relationship {rel_schema}  "
+              f"({prefix}_{rel['referencing']} -> {prefix}_{rel['referenced']} "
+              f"as {prefix}_{rel['lookupSchemaName']})")
+        dv.create_relationship(build_relationship(rel, prefix, lang))
+        created_rels += 1
+        if not args.whatif:
+            time.sleep(2)  # relationship publish can briefly lock customization
+
+    print(f"\nDone. Tables created: {created_tables}, columns created: {created_cols}, "
+          f"relationships created: {created_rels}.")
     if args.whatif:
         print("This was a dry run. Re-run without --whatif to apply.")
 
