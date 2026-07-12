@@ -1,0 +1,68 @@
+name: Provision GTOS Dataverse (Interactive)
+
+# Connects to Dataverse by signing in AS YOURSELF via the OAuth2 device-code
+# flow. Needs ONLY the environment URL -- no app registration, no client
+# secret. Ideal for managed tenants where you cannot create an app registration.
+#
+# HOW TO RUN:
+#   1. Actions tab -> "Provision GTOS Dataverse (Interactive)" -> Run workflow.
+#      Leave "Dry run" = true first to preview; set false to actually create.
+#   2. Open the LIVE log of the "Provision (interactive)" step. Within a few
+#      seconds it prints a message like:
+#        "To sign in, use a web browser to open https://microsoft.com/devicelogin
+#         and enter the code XXXXXXXXX to authenticate."
+#   3. Open that link in your browser, enter the code, and sign in with your
+#      work/school account (you must be able to customize the environment:
+#      Maker / System Customizer). The workflow then continues and creates the
+#      tables/columns/relationships with YOUR permissions.
+#
+# NOTE: You have ~15 minutes to enter the code before the flow times out, so
+# start the sign-in as soon as the code appears in the log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      whatif:
+        description: "Dry run (preview only, no writes). Set to false to apply."
+        type: boolean
+        required: true
+        default: true
+      dataverse_url:
+        description: "Dataverse environment URL"
+        type: string
+        required: true
+        default: "https://org331e3f60.crm.dynamics.com"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provision-gtos-dataverse
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Provision (interactive, dry run)
+        if: ${{ inputs.whatif }}
+        env:
+          DATAVERSE_URL: ${{ inputs.dataverse_url }}
+        run: python provision_gtos_dataverse.py --interactive --whatif
+
+      - name: Provision (interactive, apply)
+        if: ${{ !inputs.whatif }}
+        env:
+          DATAVERSE_URL: ${{ inputs.dataverse_url }}
+        run: python provision_gtos_dataverse.py --interactive
