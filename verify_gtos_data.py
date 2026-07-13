@@ -1,35 +1,35 @@
 #!/usr/bin/env python3
 """
-verify_gtos_data.py
+verify_gtos_data.py - IMPROVED VERSION
 Read-only verification + CSV export of the live GTOS data (the six tables).
 
-- Confirms the seeded demo records exist and their lookups resolve.
-- Prints a reporting-style summary (findings by severity, audit timeline,
-  transformation input->output, state lifecycle).
-- Exports one CSV per table (with human-readable choice/lookup labels via
-  Dataverse FormattedValue annotations) so you can build Power BI Desktop from
-  the files even if "Link to Fabric" isn't available yet.
-
-Reuses the same auth as provision_gtos_dataverse.py (interactive device-code).
-Nothing here writes to Dataverse.
-
-Usage:
-  python verify_gtos_data.py --interactive              # summary + CSV export
-  python verify_gtos_data.py --interactive --no-export  # summary only
-  python verify_gtos_data.py --interactive --out ./reporting_export
+IMPROVEMENTS:
+- Token masking
+- Configurable API version and timeouts
+- Better error handling
+- Logging support
 """
 
 import argparse
 import csv
 import json
+import logging
 import os
 import sys
 from pathlib import Path
+from typing import Optional, Dict, List, Any
 
 try:
     import requests
 except ImportError:
     sys.exit("Missing dependency 'requests': python -m pip install -r requirements.txt")
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 DEFAULT_PUBLIC_CLIENT = "51f81489-12ee-4a9e-aaae-a2591f45987d"
 PLACEHOLDER = "00000000-0000-0000-0000-000000000000"
